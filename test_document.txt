@@ -1,0 +1,3 @@
+Operations Protocol EMEA Q4
+Project Kaze is our main operations focus. The edge nodes in Project Kaze are scheduled to launch in Dublin on October 15th. The budget allocated is $4.5 million. The key contact person is Sarah Jenkins.
+Security audit compliance requires all Dublin nodes to run isolated VPC segments with MFA validation on SSH gateways.

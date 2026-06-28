@@ -29,4 +29,6 @@ class BaseModel(Base):
 
 # Import models for Alembic
 from app.models.user import User  # noqa
-from app.models.document import Document, DocumentChunk  # noqa
+from app.models.document import Document, DocumentChunk  # noqa
+from app.models.conversation import Conversation  # noqa
+from app.models.message import Message  # noqa
