@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { logout } from '../features/auth/authSlice';
+import { logout, updateUserProfile } from '../features/auth/authSlice';
 import api from '../services/api';
 import { 
   LayoutDashboard, 
@@ -88,6 +88,17 @@ const Dashboard = () => {
   
   // Dark Mode state
   const [darkMode, setDarkMode] = useState(localStorage.getItem('theme') === 'dark');
+
+  // Settings edit states
+  const [profileName, setProfileName] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+
+  useEffect(() => {
+    if (user?.full_name) {
+      setProfileName(user.full_name);
+    }
+  }, [user]);
 
   const messagesEndRef = useRef(null);
 
@@ -235,6 +246,43 @@ const Dashboard = () => {
       showToast(err.response?.data?.detail || 'Ingestion failed.', 'error');
     } finally {
       setUploading(false);
+    }
+  };
+
+  // Settings profile and password updates
+  const handleSaveProfile = async () => {
+    if (!profileName.trim()) {
+      showToast('Name cannot be empty', 'error');
+      return;
+    }
+    try {
+      const response = await api.put('/auth/me', { full_name: profileName });
+      dispatch(updateUserProfile({ full_name: response.data.full_name }));
+      showToast('Profile details updated successfully!');
+    } catch (err) {
+      showToast(err.response?.data?.detail || 'Failed to update profile.', 'error');
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!currentPassword || !newPassword) {
+      showToast('Please fill out all fields', 'error');
+      return;
+    }
+    if (newPassword.length < 6) {
+      showToast('New password must be at least 6 characters', 'error');
+      return;
+    }
+    try {
+      await api.put('/auth/me/password', {
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
+      showToast('Password updated successfully!');
+      setCurrentPassword('');
+      setNewPassword('');
+    } catch (err) {
+      showToast(err.response?.data?.detail || 'Failed to update password.', 'error');
     }
   };
 
@@ -1614,7 +1662,8 @@ const Dashboard = () => {
                             <input 
                               type="text" 
                               className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200"
-                              defaultValue={user?.full_name || ''}
+                              value={profileName}
+                              onChange={(e) => setProfileName(e.target.value)}
                             />
                           </div>
                           <div className="space-y-1">
@@ -1629,7 +1678,7 @@ const Dashboard = () => {
                         </div>
 
                         <button 
-                          onClick={() => showToast('Profile details updated')}
+                          onClick={handleSaveProfile}
                           className="px-4 py-2 bg-primary hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors"
                         >
                           Save Changes
@@ -1647,20 +1696,24 @@ const Dashboard = () => {
                             <label className="font-bold text-slate-400 uppercase tracking-wide text-[9px]">Current Password</label>
                             <input 
                               type="password" 
-                              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-855 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200"
+                              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200"
+                              value={currentPassword}
+                              onChange={(e) => setCurrentPassword(e.target.value)}
                             />
                           </div>
                           <div className="space-y-1">
                             <label className="font-bold text-slate-400 uppercase tracking-wide text-[9px]">New Password</label>
                             <input 
                               type="password" 
-                              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-855 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200"
+                              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200"
+                              value={newPassword}
+                              onChange={(e) => setNewPassword(e.target.value)}
                             />
                           </div>
                         </div>
 
                         <button 
-                          onClick={() => showToast('Password updated successfully')}
+                          onClick={handleUpdatePassword}
                           className="px-4 py-2 bg-primary hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors"
                         >
                           Update Password
