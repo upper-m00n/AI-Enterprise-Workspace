@@ -60,6 +60,7 @@ const Dashboard = () => {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
   const [docSearchQuery, setDocSearchQuery] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedDocDetails, setSelectedDocDetails] = useState(null);
   
   // Chat / Workspace states
   const [chats, setChats] = useState([]);
@@ -194,17 +195,23 @@ const Dashboard = () => {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       const ext = file.name.split('.').pop().toLowerCase();
-      if (ext === 'txt' || ext === 'md') {
+      if (['txt', 'md', 'pdf', 'docx'].includes(ext)) {
         setSelectedFile(file);
       } else {
-        showToast('Invalid format. Only .txt and .md are supported.', 'error');
+        showToast('Invalid format. Only .txt, .md, .pdf, and .docx are supported.', 'error');
       }
     }
   };
 
   const handleFileSelect = (e) => {
     if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
+      const file = e.target.files[0];
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (['txt', 'md', 'pdf', 'docx'].includes(ext)) {
+        setSelectedFile(file);
+      } else {
+        showToast('Invalid format. Only .txt, .md, .pdf, and .docx are supported.', 'error');
+      }
     }
   };
 
@@ -1153,14 +1160,14 @@ const Dashboard = () => {
                       <input
                         id="docFileInput"
                         type="file"
-                        accept=".txt,.md"
+                        accept=".txt,.md,.pdf,.docx"
                         onChange={handleFileSelect}
                         className="hidden"
                       />
                       <label htmlFor="docFileInput" className="cursor-pointer text-xs font-bold text-primary hover:underline">
                         {selectedFile ? 'Select a different file' : 'Click to select file'}
                       </label>
-                      <p className="text-[10px] text-slate-400 mt-1">or drag & drop UTF-8 .txt or .md</p>
+                      <p className="text-[10px] text-slate-400 mt-1">or drag & drop .txt, .md, .pdf, or .docx</p>
                       
                       {selectedFile && (
                         <div className="mt-4 p-2 bg-slate-100 dark:bg-slate-850 rounded border border-slate-200 dark:border-slate-700 text-[10px] font-medium text-slate-700 dark:text-slate-300 max-w-full truncate">

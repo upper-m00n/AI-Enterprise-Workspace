@@ -2,6 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
+import io
+from pypdf import PdfReader
+from docx import Document as DocxDocument
 
 from app.api import deps
 from app.db.database import get_db
@@ -13,34 +16,64 @@ from app.embeddings.service import get_embeddings
 
 router = APIRouter()
 
+def extract_text_from_pdf(content_bytes: bytes) -> str:
+    pdf_file = io.BytesIO(content_bytes)
+    reader = PdfReader(pdf_file)
+    text = ""
+    for page in reader.pages:
+        page_text = page.extract_text()
+        if page_text:
+            text += page_text + "\n"
+    return text
+
+def extract_text_from_docx(content_bytes: bytes) -> str:
+    docx_file = io.BytesIO(content_bytes)
+    doc = DocxDocument(docx_file)
+    text = ""
+    for paragraph in doc.paragraphs:
+        if paragraph.text:
+            text += paragraph.text + "\n"
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                text += cell.text + " "
+            text += "\n"
+    return text
+
 @router.post("/upload", response_model=DocumentResponse)
 async def upload_document(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_user)
 ) -> Document:
-    allowed_types = ["text/plain", "text/markdown", "application/octet-stream"]
     ext = file.filename.split(".")[-1].lower() if file.filename else ""
-    if file.content_type not in allowed_types and ext not in ["txt", "md"]:
+    allowed_exts = ["txt", "md", "pdf", "docx"]
+    
+    if ext not in allowed_exts:
         raise HTTPException(
             status_code=400,
-            detail="Invalid file format. Only plain text (.txt) and markdown (.md) are supported."
+            detail="Invalid file format. Supported formats: .txt, .md, .pdf, .docx"
         )
 
     try:
         content_bytes = await file.read()
-        content = content_bytes.decode("utf-8")
-    except Exception:
+        if ext == "pdf":
+            content = extract_text_from_pdf(content_bytes)
+        elif ext == "docx":
+            content = extract_text_from_docx(content_bytes)
+        else:
+            content = content_bytes.decode("utf-8")
+    except Exception as e:
         raise HTTPException(
             status_code=400,
-            detail="Could not read file content. Ensure it is UTF-8 encoded."
+            detail=f"Could not parse file content: {str(e)}"
         )
 
     if not content.strip():
-        raise HTTPException(status_code=400, detail="The uploaded file is empty.")
+        raise HTTPException(status_code=400, detail="The extracted document content is empty.")
 
     db_document = Document(
-        filename=file.filename or "unknown.txt",
+        filename=file.filename or f"unknown.{ext}",
         mime_type=file.content_type or "text/plain",
         file_size=len(content_bytes),
         user_id=current_user.id

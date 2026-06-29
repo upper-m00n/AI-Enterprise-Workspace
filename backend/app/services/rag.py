@@ -98,7 +98,7 @@ def generate_rag_response(query_text: str, chunks: list, chat_history: list = No
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "llama3-8b-8192",
+        "model": "llama-3.1-8b-instant",
         "messages": messages,
         "temperature": 0.2
     }
